@@ -57,21 +57,40 @@ router.post('/register', async (req, res) => {
 
 // User Login Route
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { email, username, password } = req.body;
 
   try {
-    const user = await User.findOne({ username: username });
+    // Support both email and username login
+    const query = email ? { gmailId: email } : { username: username };
+    const user = await User.findOne(query);
+
     if (!user) {
-      return res.status(401).json({ authenticated: false, message: 'Invalid username or password' });
+      return res.status(401).json({ authenticated: false, message: 'Invalid email or password' });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
-      return res.status(401).json({ authenticated: false, message: 'Invalid username or password' });
+      return res.status(401).json({ authenticated: false, message: 'Invalid email or password' });
     }
 
-    res.status(200).json({ authenticated: true, message: 'Login success' });
+    // Generate JWT token
+    const jwt = require('jsonwebtoken');
+    const payload = {
+      id: user._id,
+      username: user.username,
+      gmailId: user.gmailId
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
+
+    res.status(200).json({
+      authenticated: true,
+      message: 'Login success',
+      token: token,
+      username: user.username
+    });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
