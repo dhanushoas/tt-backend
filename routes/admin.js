@@ -58,7 +58,7 @@ router.post('/login', async (req, res) => {
       role: 'admin'
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '2h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '10m' });
 
     res.status(200).json({
       authenticated: true,

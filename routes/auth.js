@@ -20,6 +20,15 @@ router.post('/google-signin', async (req, res) => {
         return res.status(400).json({ message: 'ID Token is required' });
     }
 
+    // Check if Firebase Admin is initialized
+    if (!admin.apps || admin.apps.length === 0) {
+        console.error('Firebase Admin not initialized');
+        return res.status(503).json({
+            message: 'Auth Service Unavailable',
+            details: 'Firebase Admin not initialized on server'
+        });
+    }
+
     try {
         // Verify the token with Firebase
         const decodedToken = await admin.auth().verifyIdToken(idToken);
@@ -51,7 +60,7 @@ router.post('/google-signin', async (req, res) => {
             gmailId: user.gmailId
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
+        const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '10m' });
 
         res.json({
             message: 'Login successful',

@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
       gmailId: user.gmailId
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '10m' });
 
     res.status(200).json({
       authenticated: true,
