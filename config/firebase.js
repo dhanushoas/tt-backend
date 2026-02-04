@@ -15,22 +15,36 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         console.log('Attempting to parse FIREBASE_SERVICE_ACCOUNT env var...');
         let serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-        // remove the dangerous replace logic that was breaking JSON
-        // serviceAccountStr = serviceAccountStr.replace(/\\n/g, '\n');
+        // Try strict parse first
+        let serviceAccount;
+        try {
+            // First check for double-stringified (Render quirk)
+            if (typeof serviceAccountStr === 'string' && serviceAccountStr.startsWith('"') && serviceAccountStr.endsWith('"')) {
+                try {
+                    const unwrapped = JSON.parse(serviceAccountStr);
+                    serviceAccountStr = unwrapped; // Unwrap one layer
+                    console.log('Double-unwrapped service account string.');
+                } catch (e) {
+                    console.warn('Could not unwrap potentially double-quoted string');
+                }
+            }
 
-        // Check if it's double-quoted (string inside string) - Render sometimes does this
-        if (typeof serviceAccountStr === 'string' && serviceAccountStr.startsWith('"') && serviceAccountStr.endsWith('"')) {
+            serviceAccount = JSON.parse(serviceAccountStr);
+        } catch (parseError) {
+            console.warn('Strict JSON parse failed, attempting to sanitize string...', parseError.message);
+            // Fallback: The string might have bad escapes like \T instead of \\T or missing n in \n
+            // We will escape all backslashes that aren't already valid escapes
+            // Regex to find backslashes NOT followed by " \ / b f n r t u
+            const sanitizedStr = serviceAccountStr.replace(/\\([^"\\/bfnrtu])/g, '\\\\$1');
+
             try {
-                serviceAccountStr = JSON.parse(serviceAccountStr); // Unwrap one layer
-                console.log('Double-unwrapped service account string.');
-            } catch (e) {
-                console.warn('Could not unwrap potentially double-quoted string');
+                serviceAccount = JSON.parse(sanitizedStr);
+                console.log('✅ Sanitized JSON parse succeeded!');
+            } catch (fallbackError) {
+                // If fallback fails, throw the ORIGINAL error with context, as it's likely more accurate
+                throw parseError;
             }
         }
-
-        let serviceAccount = typeof serviceAccountStr === 'string'
-            ? JSON.parse(serviceAccountStr)
-            : serviceAccountStr;
 
         // Fix private_key if it has escaped newlines (common issue with Env Vars)
         if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
