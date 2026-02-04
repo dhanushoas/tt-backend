@@ -47,7 +47,23 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         console.log('✅ Firebase Admin Initialized with FIREBASE_SERVICE_ACCOUNT Env Var');
     } catch (error) {
         console.error('❌ Error parsing FIREBASE_SERVICE_ACCOUNT:', error.message);
-        admin.initError = `Env Var Parse Error: ${error.message}`;
+        let errorMsg = `Env Var Parse Error: ${error.message}`;
+
+        // Try to extract position and show context
+        const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
+        if (serviceAccountStr) {
+            const match = error.message.match(/position (\d+)/);
+            if (match && match[1]) {
+                const pos = parseInt(match[1], 10);
+                const start = Math.max(0, pos - 20);
+                const end = Math.min(serviceAccountStr.length, pos + 20);
+                // Safe substring to avoid crashing
+                const snippet = serviceAccountStr.substring(start, end);
+                errorMsg += ` | Context: "...${snippet}..."`;
+            }
+        }
+
+        admin.initError = errorMsg;
     }
 } else if (fs.existsSync(serviceAccountPath)) {
     try {
