@@ -18,9 +18,21 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         // Handle potential double-escaped newlines from some env var injection systems
         if (typeof serviceAccountStr === 'string') {
             serviceAccountStr = serviceAccountStr.replace(/\\n/g, '\n');
+
+            // Check if it's double-quoted (string inside string)
+            if (serviceAccountStr.startsWith('"') && serviceAccountStr.endsWith('"')) {
+                try {
+                    serviceAccountStr = JSON.parse(serviceAccountStr); // Unwrap one layer
+                } catch (e) {
+                    console.warn('Could not unwrap potentially double-quoted string');
+                }
+            }
         }
 
-        const serviceAccount = JSON.parse(serviceAccountStr);
+        const serviceAccount = typeof serviceAccountStr === 'string'
+            ? JSON.parse(serviceAccountStr)
+            : serviceAccountStr;
+
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
