@@ -35,7 +35,9 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
             // Fallback: The string might have bad escapes like \T instead of \\T or missing n in \n
             // We will escape all backslashes that aren't already valid escapes
             // Regex to find backslashes NOT followed by " \ / b f n r t u
-            const sanitizedStr = serviceAccountStr.replace(/\\([^"\\/bfnrtu])/g, '\\\\$1');
+            // We assume these are corrupted newlines (e. g. \T instead of \n T)
+            // We replace them with \\n (literal \n) followed by the character to restore the newline
+            const sanitizedStr = serviceAccountStr.replace(/\\([^"\\/bfnrtu])/g, '\\\\n$1');
 
             try {
                 serviceAccount = JSON.parse(sanitizedStr);
