@@ -25,7 +25,11 @@ router.post('/google-signin', async (req, res) => {
         console.error('Firebase Admin not initialized');
         return res.status(503).json({
             message: 'Auth Service Unavailable',
-            details: 'Firebase Admin not initialized on server'
+            details: 'Firebase Admin not initialized on server',
+            diagnostic: {
+                hasEnvVar: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+                hasLocalFile: require('fs').existsSync(require('path').join(__dirname, '../config/firebase-service-account.json'))
+            }
         });
     }
 
@@ -70,8 +74,18 @@ router.post('/google-signin', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Firebase Verification Error:', error);
-        res.status(401).json({ message: 'Invalid Token' });
+        console.error('Firebase Verification Error Details:', JSON.stringify(error, null, 2));
+        console.error('Error Code:', error.code);
+        console.error('Error Message:', error.message);
+
+        if (error.code === 'auth/argument-error') {
+            return res.status(400).json({ message: 'Invalid Firebase Token format' });
+        }
+        if (error.code === 'auth/id-token-expired') {
+            return res.status(401).json({ message: 'Firebase Token has expired' });
+        }
+
+        res.status(401).json({ message: 'Invalid Token', details: error.message });
     }
 });
 
