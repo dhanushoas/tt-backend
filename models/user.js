@@ -7,6 +7,8 @@ const userSchema = new mongoose.Schema({
   dob: Date,
   password: String,
   registrationTime: { type: Date, default: Date.now },
+  isVerified: { type: Boolean, default: false },
+  verificationToken: String,
 });
 
 const User = mongoose.model('User', userSchema);
