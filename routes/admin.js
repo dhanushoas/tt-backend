@@ -49,9 +49,25 @@ router.post('/login', async (req, res) => {
     if (!passwordMatch) {
       return res.status(401).json({ authenticated: false, message: 'Invalid adminname or password' });
     }
-    
-    res.status(200).json({ authenticated: true, message: 'Login successful' });
+
+    // Generate Admin JWT token
+    const jwt = require('jsonwebtoken');
+    const payload = {
+      id: admin._id,
+      adminname: admin.adminname,
+      role: 'admin'
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '2h' });
+
+    res.status(200).json({
+      authenticated: true,
+      message: 'Login successful',
+      token: token,
+      adminname: admin.adminname
+    });
   } catch (error) {
+    console.error('Admin login error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
