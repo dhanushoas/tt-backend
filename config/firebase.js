@@ -15,24 +15,27 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         console.log('Attempting to parse FIREBASE_SERVICE_ACCOUNT env var...');
         let serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-        // Handle potential double-escaped newlines from some env var injection systems
-        if (typeof serviceAccountStr === 'string') {
-            serviceAccountStr = serviceAccountStr.replace(/\\n/g, '\n');
+        // remove the dangerous replace logic that was breaking JSON
+        // serviceAccountStr = serviceAccountStr.replace(/\\n/g, '\n');
 
-            // Check if it's double-quoted (string inside string)
-            if (serviceAccountStr.startsWith('"') && serviceAccountStr.endsWith('"')) {
-                try {
-                    serviceAccountStr = JSON.parse(serviceAccountStr); // Unwrap one layer
-                    console.log('Double-unwrapped service account string.');
-                } catch (e) {
-                    console.warn('Could not unwrap potentially double-quoted string');
-                }
+        // Check if it's double-quoted (string inside string) - Render sometimes does this
+        if (typeof serviceAccountStr === 'string' && serviceAccountStr.startsWith('"') && serviceAccountStr.endsWith('"')) {
+            try {
+                serviceAccountStr = JSON.parse(serviceAccountStr); // Unwrap one layer
+                console.log('Double-unwrapped service account string.');
+            } catch (e) {
+                console.warn('Could not unwrap potentially double-quoted string');
             }
         }
 
-        const serviceAccount = typeof serviceAccountStr === 'string'
+        let serviceAccount = typeof serviceAccountStr === 'string'
             ? JSON.parse(serviceAccountStr)
             : serviceAccountStr;
+
+        // Fix private_key if it has escaped newlines (common issue with Env Vars)
+        if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
 
         if (!serviceAccount.project_id || !serviceAccount.private_key) {
             throw new Error('Parsed JSON does not look like a Service Account (missing project_id or private_key)');
