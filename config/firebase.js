@@ -44,9 +44,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         console.log('✅ Firebase Admin Initialized with FIREBASE_SERVICE_ACCOUNT Env Var');
     } catch (error) {
         console.error('❌ Error parsing FIREBASE_SERVICE_ACCOUNT:', error.message);
-        const envVal = process.env.FIREBASE_SERVICE_ACCOUNT || '';
-        console.error(`Env Var Length: ${envVal.length}`);
-        console.error('First 100 chars of env var:', envVal.substring(0, 100));
+        admin.initError = `Env Var Parse Error: ${error.message}`;
     }
 } else if (fs.existsSync(serviceAccountPath)) {
     try {
@@ -56,10 +54,11 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         console.log('✅ Firebase Admin Initialized with local file');
     } catch (error) {
         console.error('❌ Error initializing from local file:', error);
+        admin.initError = `Local File Init Error: ${error.message}`;
     }
 } else {
     console.warn('\x1b[31m[WARNING] Firebase Admin NOT initialized.\x1b[0m');
-    console.warn('Reason: No FIREBASE_SERVICE_ACCOUNT env var and no local firebase-service-account.json found.');
+    admin.initError = 'No credentials found (Env Var or Local File)';
 }
 
 module.exports = admin;

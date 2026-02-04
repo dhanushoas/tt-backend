@@ -28,7 +28,8 @@ router.post('/google-signin', async (req, res) => {
             details: 'Firebase Admin not initialized on server',
             diagnostic: {
                 hasEnvVar: !!process.env.FIREBASE_SERVICE_ACCOUNT,
-                hasLocalFile: require('fs').existsSync(require('path').join(__dirname, '../config/firebase-service-account.json'))
+                hasLocalFile: require('fs').existsSync(require('path').join(__dirname, '../config/firebase-service-account.json')),
+                initError: admin.initError || 'Unknown initialization error'
             }
         });
     }
