@@ -23,6 +23,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
             if (serviceAccountStr.startsWith('"') && serviceAccountStr.endsWith('"')) {
                 try {
                     serviceAccountStr = JSON.parse(serviceAccountStr); // Unwrap one layer
+                    console.log('Double-unwrapped service account string.');
                 } catch (e) {
                     console.warn('Could not unwrap potentially double-quoted string');
                 }
@@ -33,13 +34,19 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
             ? JSON.parse(serviceAccountStr)
             : serviceAccountStr;
 
+        if (!serviceAccount.project_id || !serviceAccount.private_key) {
+            throw new Error('Parsed JSON does not look like a Service Account (missing project_id or private_key)');
+        }
+
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
         console.log('✅ Firebase Admin Initialized with FIREBASE_SERVICE_ACCOUNT Env Var');
     } catch (error) {
         console.error('❌ Error parsing FIREBASE_SERVICE_ACCOUNT:', error.message);
-        console.error('First 50 chars of env var:', process.env.FIREBASE_SERVICE_ACCOUNT ? process.env.FIREBASE_SERVICE_ACCOUNT.substring(0, 50) : 'N/A');
+        const envVal = process.env.FIREBASE_SERVICE_ACCOUNT || '';
+        console.error(`Env Var Length: ${envVal.length}`);
+        console.error('First 100 chars of env var:', envVal.substring(0, 100));
     }
 } else if (fs.existsSync(serviceAccountPath)) {
     try {
