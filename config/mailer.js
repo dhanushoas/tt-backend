@@ -25,10 +25,10 @@ const sendVerificationEmail = async (toEmail, token) => {
     };
 
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.log('⚠️  EMAIL_USER/EMAIL_PASS not set. Printing verification link to console:');
+        console.log('⚠️  EMAIL_USER/EMAIL_PASS not set. Printing OTP to console:');
         console.log('---------------------------------------------------');
         console.log(`To: ${toEmail}`);
-        console.log(`Link: ${verifyUrl}`);
+        console.log(`OTP Code: ${token}`);
         console.log('---------------------------------------------------');
         return Promise.resolve(); // Mock success
     }
