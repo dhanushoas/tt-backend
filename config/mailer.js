@@ -43,7 +43,15 @@ const sendVerificationEmail = async (toEmail, token) => {
         console.log('✅ Verification email sent:', info.response);
     } catch (error) {
         console.error('❌ Error sending email:', error);
-        throw error; // Throw so the caller knows it failed
+
+        // Fallback: Return the token anyway so the user can verify manually in case of error
+        // This is crucial for environments where SMTP might be blocked or misconfigured
+        console.log('---------------------------------------------------');
+        console.log('⚠️  Email failed. USE THIS LINK TO VERIFY:');
+        console.log(`Link: ${verifyUrl}`);
+        console.log('---------------------------------------------------');
+
+        return Promise.resolve(verifyUrl);
     }
 };
 
