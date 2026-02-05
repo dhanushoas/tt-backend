@@ -38,8 +38,7 @@ const sendVerificationEmail = async (toEmail, token) => {
         console.log('✅ Verification email sent:', info.response);
     } catch (error) {
         console.error('❌ Error sending email:', error);
-        // Don't throw, just log, so registration doesn't technically fail if email fails? 
-        // Or should we fail? Let's assume fail for now is bad UX if just SMTP is down.
+        throw error; // Throw so the caller knows it failed
     }
 };
 

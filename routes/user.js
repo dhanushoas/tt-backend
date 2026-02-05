@@ -49,15 +49,15 @@ router.post('/register', async (req, res) => {
     );
 
     // Send email with the JWT as the token
-    sendVerificationEmail(gmailId, registrationToken);
+    await sendVerificationEmail(gmailId, registrationToken);
 
     res.status(200).json({
       message: 'Verification email sent! User will be created upon verification.',
       requiresVerification: true
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Registration/Email Error:', error);
+    res.status(500).json({ error: 'Failed to send verification email. Please try again or check support.' });
   }
 });
 
