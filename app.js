@@ -19,6 +19,8 @@ const bookRoutes = require('./routes/book');
 const selectedPlaceRoutes = require('./routes/selectedPlace');
 const paymentRoutes = require('./routes/payment');
 const contactRoutes = require('./routes/contact');
+const subscriptionRoutes = require('./routes/subscription');
+const serviceRequestRoutes = require('./routes/serviceRequest');
 
 // Use middleware
 app.use(bodyParser.json());
@@ -54,6 +56,8 @@ app.use('/pay', authenticationMiddleware, paymentRoutes);
 app.use('/admin', adminRoutes); // Admin routes likely have their own login/register which should be public.
 app.use('/user', userRoutes); // User routes likely have login/register.
 app.use('/contact', contactRoutes); // Public contact form
+app.use('/subscription', subscriptionRoutes); // Public newsletter
+app.use('/service-request', serviceRequestRoutes); // Public service requests
 
 
 // Connect to MongoDB
