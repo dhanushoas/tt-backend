@@ -49,11 +49,13 @@ router.post('/register', async (req, res) => {
     );
 
     // Send email with the JWT as the token
-    await sendVerificationEmail(gmailId, registrationToken);
+    const mockVerifyLink = await sendVerificationEmail(gmailId, registrationToken);
 
     res.status(200).json({
       message: 'Verification email sent! User will be created upon verification.',
-      requiresVerification: true
+      requiresVerification: true,
+      // If we are in dev/mock mode, send the link back so the UI can show it
+      verifyLink: typeof mockVerifyLink === 'string' ? mockVerifyLink : undefined
     });
   } catch (error) {
     console.error('Registration/Email Error:', error);

@@ -30,7 +30,7 @@ const sendVerificationEmail = async (toEmail, token) => {
         console.log(`To: ${toEmail}`);
         console.log(`Link: ${verifyUrl}`);
         console.log('---------------------------------------------------');
-        return Promise.resolve(); // Mock success
+        return Promise.resolve(verifyUrl); // Mock success, return link for debugging
     }
 
     try {
