@@ -18,9 +18,9 @@ const sendVerificationEmail = async (toEmail, token) => {
         subject: 'Verify Your Email Address',
         html: `
       <h3>Welcome to TN Tourism!</h3>
-      <p>Please click the link below to verify your email address:</p>
-      <a href="${verifyUrl}">Verify Email</a>
-      <p>Or copy this link: ${verifyUrl}</p>
+      <p>Thank you for signing up. Please use the verification code below to complete your registration:</p>
+      <h2 style="color: #667eea; letter-spacing: 5px;">${token}</h2>
+      <p>Enter this code in the signup page to verify your account.</p>
     `
     };
 

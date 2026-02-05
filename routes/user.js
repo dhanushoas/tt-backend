@@ -39,7 +39,9 @@ router.post('/register', async (req, res) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verifyToken = crypto.randomBytes(32).toString('hex');
+
+    // Generate 6-digit OTP
+    const verifyToken = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Create a new user with additional fields
     const newUser = new User({
@@ -58,8 +60,9 @@ router.post('/register', async (req, res) => {
     sendVerificationEmail(gmailId, verifyToken);
 
     res.status(200).json({
-      message: 'Registered successfully! Please check your email to verify your account.',
-      requiresVerification: true
+      message: 'Registered successfully! OTP sent to your email.',
+      requiresVerification: true,
+      email: gmailId
     });
   } catch (error) {
     console.error(error);
@@ -67,7 +70,48 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Verify Email Route
+// Verify OTP & Auto-Login Route
+router.post('/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ gmailId: email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (user.verificationToken !== otp) {
+      return res.status(400).json({ message: 'Invalid verification code.' });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined; // Clear token
+    await user.save();
+
+    // Generate JWT token for auto-login
+    const jwt = require('jsonwebtoken');
+    const payload = {
+      id: user._id,
+      username: user.username,
+      gmailId: user.gmailId
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
+
+    res.status(200).json({
+      message: 'Email verified successfully!',
+      authenticated: true,
+      token: token,
+      username: user.username
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Verify Email Route (Legacy Link Support - optional or keeping for safe measure)
 router.post('/verify-email', async (req, res) => {
   const { token } = req.body;
   try {
@@ -99,12 +143,12 @@ router.post('/resend-verification', async (req, res) => {
       return res.status(400).json({ message: 'Email already verified' });
     }
 
-    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyToken = Math.floor(100000 + Math.random() * 900000).toString();
     user.verificationToken = verifyToken;
     await user.save();
 
     sendVerificationEmail(user.gmailId, verifyToken);
-    res.json({ message: 'Verification email resent.' });
+    res.json({ message: 'Verification code resent.' });
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
   }
