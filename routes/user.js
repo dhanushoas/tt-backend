@@ -39,9 +39,7 @@ router.post('/register', async (req, res) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Generate 6-digit OTP
-    const verifyToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const verifyToken = crypto.randomBytes(32).toString('hex');
 
     // Create a new user with additional fields
     const newUser = new User({
@@ -60,9 +58,8 @@ router.post('/register', async (req, res) => {
     sendVerificationEmail(gmailId, verifyToken);
 
     res.status(200).json({
-      message: 'Registered successfully! OTP sent to your email.',
-      requiresVerification: true,
-      email: gmailId
+      message: 'Registered successfully! Please check your email to verify your account.',
+      requiresVerification: true
     });
   } catch (error) {
     console.error(error);
@@ -143,12 +140,12 @@ router.post('/resend-verification', async (req, res) => {
       return res.status(400).json({ message: 'Email already verified' });
     }
 
-    const verifyToken = Math.floor(100000 + Math.random() * 900000).toString();
+    const verifyToken = crypto.randomBytes(32).toString('hex');
     user.verificationToken = verifyToken;
     await user.save();
 
     sendVerificationEmail(user.gmailId, verifyToken);
-    res.json({ message: 'Verification code resent.' });
+    res.json({ message: 'Verification email resent.' });
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
   }

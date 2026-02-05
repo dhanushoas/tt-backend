@@ -18,17 +18,17 @@ const sendVerificationEmail = async (toEmail, token) => {
         subject: 'Verify Your Email Address',
         html: `
       <h3>Welcome to TN Tourism!</h3>
-      <p>Thank you for signing up. Please use the verification code below to complete your registration:</p>
-      <h2 style="color: #667eea; letter-spacing: 5px;">${token}</h2>
-      <p>Enter this code in the signup page to verify your account.</p>
+      <p>Please click the link below to verify your email address:</p>
+      <a href="${verifyUrl}">Verify Email</a>
+      <p>Or copy this link: ${verifyUrl}</p>
     `
     };
 
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.log('⚠️  EMAIL_USER/EMAIL_PASS not set. Printing OTP to console:');
+        console.log('⚠️  EMAIL_USER/EMAIL_PASS not set. Printing verification link to console:');
         console.log('---------------------------------------------------');
         console.log(`To: ${toEmail}`);
-        console.log(`OTP Code: ${token}`);
+        console.log(`Link: ${verifyUrl}`);
         console.log('---------------------------------------------------');
         return Promise.resolve(); // Mock success
     }
