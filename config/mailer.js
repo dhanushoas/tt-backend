@@ -24,6 +24,11 @@ const sendVerificationEmail = async (toEmail, token) => {
     `
     };
 
+    console.log('Sending email with config:', {
+        user: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+        pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET'
+    });
+
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
         console.log('⚠️  EMAIL_USER/EMAIL_PASS not set. Printing verification link to console:');
         console.log('---------------------------------------------------');
