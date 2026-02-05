@@ -39,26 +39,20 @@ router.post('/register', async (req, res) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verifyToken = crypto.randomBytes(32).toString('hex');
 
-    // Create a new user with additional fields
-    const newUser = new User({
-      username,
-      gmailId,
-      dob,
-      password: hashedPassword,
-      isVerified: false, // Default false
-      verificationToken: verifyToken
-    });
+    // Generate JWT containing user data (valid for 1 hour)
+    const jwt = require('jsonwebtoken');
+    const registrationToken = jwt.sign(
+      { username, gmailId, dob, password: hashedPassword },
+      process.env.JWT_SECRET || 'secretkey',
+      { expiresIn: '1h' }
+    );
 
-    // Save the new user
-    await newUser.save();
-
-    // Send email (async, don't block response too long)
-    sendVerificationEmail(gmailId, verifyToken);
+    // Send email with the JWT as the token
+    sendVerificationEmail(gmailId, registrationToken);
 
     res.status(200).json({
-      message: 'Registered successfully! Please check your email to verify your account.',
+      message: 'Verification email sent! User will be created upon verification.',
       requiresVerification: true
     });
   } catch (error) {
@@ -67,64 +61,47 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Verify OTP & Auto-Login Route
-router.post('/verify-otp', async (req, res) => {
-  const { email, otp } = req.body;
-
-  try {
-    const user = await User.findOne({ gmailId: email });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
-
-    if (user.verificationToken !== otp) {
-      return res.status(400).json({ message: 'Invalid verification code.' });
-    }
-
-    user.isVerified = true;
-    user.verificationToken = undefined; // Clear token
-    await user.save();
-
-    // Generate JWT token for auto-login
-    const jwt = require('jsonwebtoken');
-    const payload = {
-      id: user._id,
-      username: user.username,
-      gmailId: user.gmailId
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' });
-
-    res.status(200).json({
-      message: 'Email verified successfully!',
-      authenticated: true,
-      token: token,
-      username: user.username
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// Verify Email Route (Legacy Link Support - optional or keeping for safe measure)
+// Verify Email Route (Creates User in DB)
 router.post('/verify-email', async (req, res) => {
   const { token } = req.body;
+  const jwt = require('jsonwebtoken');
+
   try {
-    const user = await User.findOne({ verificationToken: token });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification token.' });
+    // Verify and decode the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
+    const { username, gmailId, dob, password } = decoded;
+
+    // Check if user already exists (prevent duplicate creation if link clicked twice)
+    let user = await User.findOne({ gmailId });
+    if (user) {
+      if (user.isVerified) {
+        return res.status(200).json({ message: 'Email already verified. You can login.' });
+      } else {
+        user.isVerified = true;
+        await user.save();
+        return res.status(200).json({ message: 'Email verified successfully!' });
+      }
     }
 
-    user.isVerified = true;
-    user.verificationToken = undefined; // Clear token
-    await user.save();
+    // Create new user in DB
+    const newUser = new User({
+      username,
+      gmailId,
+      dob,
+      password, // Already hashed in the token
+      isVerified: true,
+      registrationTime: new Date()
+    });
 
-    res.status(200).json({ message: 'Email verified successfully! You can now login.' });
+    await newUser.save();
+
+    res.status(200).json({ message: 'Email verified and account created successfully! You can now login.' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Verification Error:', error);
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ message: 'Verification link expired. Please register again.' });
+    }
+    res.status(400).json({ message: 'Invalid verification token.' });
   }
 });
 
