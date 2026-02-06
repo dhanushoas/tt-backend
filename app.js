@@ -77,7 +77,15 @@ app.use('/book', (req, res, next) => {
 
 // Protected Routes
 app.use('/api/visits', authenticationMiddleware, selectedPlaceRoutes);
-app.use('/pay', authenticationMiddleware, paymentRoutes);
+
+// Payment routes: POST (guest payment) and status check are public
+app.use('/pay', (req, res, next) => {
+  if (req.method === 'POST' && req.path === '/api/payments') return next();
+  if (req.method === 'GET' && req.path === '/api/payments/paidIds') return next();
+  // Others (all payments list) need Admin authentication
+  return authenticationMiddleware(req, res, next);
+}, paymentRoutes);
+
 app.use('/admin', adminRoutes);
 app.use('/user', userRoutes);
 
