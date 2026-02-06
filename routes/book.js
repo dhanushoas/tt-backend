@@ -76,6 +76,18 @@ router.get('/getall/:username', async (req, res) => {
   }
 });
 
+// API endpoint to get all bookings for a specific email (for Google users)
+router.get('/getByEmail/:email', async (req, res) => {
+  const email = req.params.email;
+
+  try {
+    const bookings = await Book.find({ email: email });
+    res.status(200).json({ bookings });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Read (get a book by custom ID)
 router.get('/getByCustomId/:customId', async (req, res) => {
   const customId = req.params.customId;

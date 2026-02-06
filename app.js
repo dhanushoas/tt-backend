@@ -70,7 +70,7 @@ app.use('/image', (req, res, next) => {
 app.use('/book', (req, res, next) => {
   // Allow guest to post a new booking or view their own booking summary
   if (req.method === 'POST' && req.path === '/add') return submissionLimiter(req, res, next);
-  if (req.method === 'GET' && req.path.startsWith('/getByCustomId')) return next();
+  if (req.method === 'GET' && (req.path.startsWith('/getByCustomId') || req.path.startsWith('/getByEmail'))) return next();
   // Others (update, delete, get all) need authentication (Admin/Owner)
   return authenticationMiddleware(req, res, next);
 }, bookRoutes);

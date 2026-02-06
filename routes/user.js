@@ -172,7 +172,8 @@ router.post('/login', async (req, res) => {
       authenticated: true,
       message: 'Login success',
       token: token,
-      username: user.username
+      username: user.username,
+      email: user.gmailId
     });
   } catch (error) {
     console.error('Login error:', error);

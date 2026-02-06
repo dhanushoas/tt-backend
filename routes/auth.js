@@ -71,6 +71,7 @@ router.post('/google-signin', async (req, res) => {
             message: 'Login successful',
             token,
             username: user.username,
+            email: user.gmailId,
             authenticated: true
         });
 
