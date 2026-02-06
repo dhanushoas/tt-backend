@@ -4,14 +4,43 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const passport = require('passport');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 
-// Use environment variables for sensitive information
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/test_db';
 
-// Import middleware and routes
-/* const authenticationMiddleware = require('./middleware/authentication'); */
+// --- SECURITY MIDDLEWARE ---
+app.use(helmet()); // Basic security headers
+app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(cors());
+app.use(bodyParser.json());
+
+// Global Rate Limiter: 100 requests per 15 minutes
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use(globalLimiter);
+
+// Stricter Rate Limiter for Bookings and Contact: 5 requests per 15 minutes
+const submissionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many submissions. Please wait before trying again.'
+});
+
+// --- PASSPORT CONFIG ---
+require('./config/passport');
+app.use(passport.initialize());
+
+const authenticationMiddleware = require('./middleware/authentication');
+
+// --- ROUTES ---
 const imageRoutes = require('./routes/image');
 const userRoutes = require('./routes/user');
 const adminRoutes = require('./routes/admin');
@@ -20,46 +49,38 @@ const selectedPlaceRoutes = require('./routes/selectedPlace');
 const paymentRoutes = require('./routes/payment');
 const contactRoutes = require('./routes/contact');
 const serviceRequestRoutes = require('./routes/serviceRequest');
-
-// Use middleware
-app.use(bodyParser.json());
-app.use(cors());
-
-// Passport Config
-require('./config/passport');
-app.use(passport.initialize());
-
-const authenticationMiddleware = require('./middleware/authentication');
 const authRoutes = require('./routes/auth');
 
-// Public Routes
+// Publicly Accessible Routes (No token needed for GET or guest POST)
 app.use('/auth', authRoutes);
-// We might need to check if 'userRoutes' contains login/register. 
-// Usually /user/login is public. 
-// If userRoutes contains ONLY protected user actions, verify first.
-// Assuming /user/signin and /user/signup are handled inside userRoutes or authRoutes.
-// Let's inspect userRoutes first to be safe, but typically we apply middleware to /api/* or specific routes.
-// The user said "secure all endpoints".
-// We will apply it to everything EXCEPT auth.
+app.use('/contact', submissionLimiter, contactRoutes);
+app.use('/service-request', serviceRequestRoutes);
 
-// However, /user usually has 'login' inside it.
-// We should probably move login/register to 'authRoutes' or allow them.
-// Since I can't easily split files right now, I will use a conditional middleware or router structure.
+// Image routes: GET is public, others are protected
+app.use('/image', (req, res, next) => {
+  if (req.method === 'GET') return next();
+  return authenticationMiddleware(req, res, next);
+}, imageRoutes);
 
-// BETTER APPROACH:
-// Apply middleware to specific protected paths.
-app.use('/image', authenticationMiddleware, imageRoutes);
-app.use('/book', authenticationMiddleware, bookRoutes);
+// Booking routes: POST (guest booking) and GET (view by ID) are public
+app.use('/book', (req, res, next) => {
+  // Allow guest to post a new booking or view their own booking summary
+  if (req.method === 'POST' && req.path === '/add') return submissionLimiter(req, res, next);
+  if (req.method === 'GET' && req.path.startsWith('/getByCustomId')) return next();
+  // Others (update, delete, get all) need authentication (Admin/Owner)
+  return authenticationMiddleware(req, res, next);
+}, bookRoutes);
+
+// Protected Routes
 app.use('/api/visits', authenticationMiddleware, selectedPlaceRoutes);
 app.use('/pay', authenticationMiddleware, paymentRoutes);
-app.use('/admin', adminRoutes); // Admin routes likely have their own login/register which should be public.
-app.use('/user', userRoutes); // User routes likely have login/register.
-app.use('/contact', contactRoutes); // Public contact form
-app.use('/service-request', serviceRequestRoutes); // Public service requests
-
+app.use('/admin', adminRoutes);
+app.use('/user', userRoutes);
 
 // Connect to MongoDB
-mongoose.connect(MONGODB_URI, { /* useNewUrlParser: true, useUnifiedTopology: true  */ });
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB Successfully'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Start the server
 app.listen(PORT, () => {
