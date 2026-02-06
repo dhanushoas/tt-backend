@@ -9,10 +9,10 @@ router.post('/add', async (req, res) => {  // Use router.post() here
   const newBook = new Book(bookDetails);
 
   try {
-      await newBook.save();
-      res.status(200).json({ message: 'Book added successfully', book: newBook });
+    await newBook.save();
+    res.status(200).json({ message: 'Book added successfully', book: newBook });
   } catch (error) {
-      res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -21,7 +21,7 @@ router.get('/getall/:username', async (req, res) => {
   const signedInUsername = req.params.username;
 
   try {
-    const bookings = await Book.find({ nameOfVisitor: signedInUsername });
+    const bookings = await Book.find({ username: signedInUsername });
     res.status(200).json({ bookings });
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
