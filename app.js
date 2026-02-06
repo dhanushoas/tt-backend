@@ -15,8 +15,12 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/test_d
 
 // --- SECURITY MIDDLEWARE ---
 app.use(helmet()); // Basic security headers
-app.use(mongoSanitize()); // Prevent NoSQL injection
-app.use(cors());
+app.use(mongoSanitize());
+app.use(cors({
+  origin: process.env.CLIENT_URL || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
 
 // Global Rate Limiter: 100 requests per 15 minutes
